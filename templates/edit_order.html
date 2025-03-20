@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="{{ session.get('lang', 'zh') }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ _('Edit Order') }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand">{{ _('Edit Order') }}</span>
+            <div class="d-flex">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ _('Back to Dashboard') }}</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container my-5">
+        <h2>{{ _('Edit Order') }}</h2>
+        <form method="POST" action="{{ url_for('edit_order', order_id=order.id) }}">
+            <div class="mb-3">
+                <label for="input_number" class="form-label">{{ _('# Input Number') }}</label>
+                <input type="text" class="form-control" id="input_number" name="input_number" value="{{ order.input_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="supplier_shipper" class="form-label">{{ _('Supplier/Shipper') }}</label>
+                <input type="text" class="form-control" id="supplier_shipper" name="supplier_shipper" value="{{ order.supplier_shipper or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="po_number" class="form-label">{{ _('PO Number') }}</label>
+                <input type="text" class="form-control" id="po_number" name="po_number" value="{{ order.po_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="material_code" class="form-label">{{ _('Material Code') }}</label>
+                <input type="text" class="form-control" id="material_code" name="material_code" value="{{ order.material_code or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="bom_material_name" class="form-label">{{ _('BOM Material Name') }}</label>
+                <input type="text" class="form-control" id="bom_material_name" name="bom_material_name" value="{{ order.bom_material_name or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="material_size" class="form-label">{{ _('Material Size') }}</label>
+                <input type="text" class="form-control" id="material_size" name="material_size" value="{{ order.material_size or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="quantity" class="form-label">{{ _('Quantity') }}</label>
+                <input type="text" class="form-control" id="quantity" name="quantity" value="{{ order.quantity or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="unit" class="form-label">{{ _('Unit') }}</label>
+                <input type="text" class="form-control" id="unit" name="unit" value="{{ order.unit or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="mbl_number" class="form-label">{{ _('MBL Number') }}</label>
+                <input type="text" class="form-control" id="mbl_number" name="mbl_number" value="{{ order.mbl_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="container_count" class="form-label">{{ _('Container Count') }}</label>
+                <input type="text" class="form-control" id="container_count" name="container_count" value="{{ order.container_count or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="container_number" class="form-label">{{ _('Container Number') }}</label>
+                <input type="text" class="form-control" id="container_number" name="container_number" value="{{ order.container_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="hbl_number" class="form-label">{{ _('HBL Number') }}</label>
+                <input type="text" class="form-control" id="hbl_number" name="hbl_number" value="{{ order.hbl_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="pol" class="form-label">{{ _('POL') }}</label>
+                <input type="text" class="form-control" id="pol" name="pol" value="{{ order.pol or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="etd" class="form-label">{{ _('ETD') }}</label>
+                <input type="text" class="form-control" id="etd" name="etd" value="{{ order.etd or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="pod" class="form-label">{{ _('POD') }}</label>
+                <input type="text" class="form-control" id="pod" name="pod" value="{{ order.pod or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="pod_eta" class="form-label">{{ _('POD ETA') }}</label>
+                <input type="text" class="form-control" id="pod_eta" name="pod_eta" value="{{ order.pod_eta or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="estimated_delivery_date" class="form-label">{{ _('Estimated Delivery Date') }}</label>
+                <input type="text" class="form-control" id="estimated_delivery_date" name="estimated_delivery_date" value="{{ order.estimated_delivery_date or '' }}">
+            </div>
+            <!-- 备注 -->
+            <div class="mb-3">
+                <label for="remark" class="form-label">{{ _('Remark') }}</label>
+                <textarea class="form-control" id="remark" name="remark" rows="3">{{ order.remark or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ _('Cancel') }}</a>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
