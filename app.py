@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, send_file, session
+from flask import Flask, request, render_template, redirect, url_for, flash, send_file, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
@@ -11,44 +11,47 @@ from sqlalchemy import or_
 
 """
 -------------------------------------------------------
- Flask 应用示例
+ Flask 应用示例（优化版）
  1. 使用 Flask-Babel 多语言支持
  2. 使用 Flask-Login 用户登录/登出
  3. Excel 文件上传、数据清洗（去除重复列）并导入数据库
  4. 数据导出至 Excel
  5. 搜索、空值搜索及整体空值统计功能
- 6. 表头增加一行显示各列负责部门（若该列存在空值则部门名称标红）
- 7. 编辑页面增加备注功能（remark字段）
+    - 搜索时支持仅显示空值订单（空字符串和 "0" 均视为缺失）
+ 6. Dashboard 表头增加两行：
+    - 第一行显示各列负责部门（若该列在当前查询中存在缺失则标红，否则黑色）
+    - 第二行显示实际列名，并在 title 中提示整个数据库中该字段的缺失数量
+ 7. 新增订单和编辑订单功能，支持备注（remark）字段
 -------------------------------------------------------
 """
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
 
-# ========== 数据库配置 ==========
+# ========= 数据库配置 =========
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orders.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# ========== 文件上传目录 ==========
+# ========= 文件上传目录 =========
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# ========== 初始化 Flask-Login ==========
+# ========= 初始化 Flask-Login =========
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# ========== Flask-Babel ==========
+# ========= Flask-Babel =========
 app.config['BABEL_DEFAULT_LOCALE'] = 'zh'
 app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'zh']
 def get_locale():
     return session.get('lang', 'zh')
 babel = Babel(app, locale_selector=get_locale)
 
-# ========== 模拟用户数据 ==========
+# ========= 模拟用户数据 =========
 users = {
     'admin': {'password': 'admin123', 'role': 'admin'},
     'user': {'password': 'user123', 'role': 'user'}
@@ -63,6 +66,7 @@ def load_user(user_id):
         return User(user_id, users[user_id]['role'])
     return None
 
+# ========= 切换语言 =========
 @app.route('/switch_language/<lang>')
 def switch_language(lang):
     if lang in ['en', 'zh']:
@@ -70,13 +74,17 @@ def switch_language(lang):
         session['lang'] = lang
     return redirect(request.referrer or url_for('dashboard'))
 
-# ========== 数据库模型定义 ==========
+# ========= 数据库模型 =========
 class Order(db.Model):
     """
     订单模型。
-    注意：Excel 导入时 row.get() 中的键必须与 Excel 中的列名完全匹配！
-    此处示例中 Excel 列名包含换行符，如 "#\n输入序号"、"SUPPLIER/SHIPPER\n发货人" 等。
-    增加 remark 字段用于填写备注（空值时可填写备注）。
+    注意：Excel 导入时使用的键必须与 Excel 中的列名完全一致（包括换行符）。
+    示例列名：
+      "#\n输入序号", "SUPPLIER/SHIPPER\n发货人", "PO#\n订单号", "Material Code\nSAP料号",
+      "BOM\n物料名称", "Material Size\n型号/规格/尺寸", "Quantity\n数量", "UNIT\n单位",
+      "MBL# / MAWB#\n船东提单号", "柜子数", "CNTR#\n柜号", "HBL#\n提单号", "POL\n起运港",
+      "ETD\n开船日", "POD\n目的港", "POD ETA\n实际到港日期", "EST. DELIVERY DATE\n预估到厂日"
+    备注字段 remark 用于说明缺失原因等信息。
     """
     id = db.Column(db.Integer, primary_key=True)
     input_number = db.Column(db.String(100))
@@ -99,21 +107,21 @@ class Order(db.Model):
     remark = db.Column(db.String(500), default='')  # 备注字段
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# ========== Excel 导入及数据清洗 ==========
+# ========= Excel 导入及数据清洗 =========
 def import_excel_to_db():
     """
-    读取 Excel 文件，对列名去空格、去重复及填充空值，
-    然后将每行数据转换为 Order 对象，插入数据库。
-    注意：row.get() 中的键必须与 Excel 中的列名（包含换行符）完全一致！
+    从 UPLOAD_FOLDER 下的 material.xlsx 文件中读取数据，
+    对列名去空格、去重复并填充空值后，逐行转换为 Order 对象插入数据库。
+    注意：Excel 中的列名必须和以下 row.get() 使用的键一致（包括换行符）。
     """
     excel_file = os.path.join(app.config['UPLOAD_FOLDER'], 'material.xlsx')
     if os.path.exists(excel_file):
         try:
             data = pd.read_excel(excel_file, dtype=str)
             data.columns = data.columns.str.strip()
-            print("【调试】读取后原始列名:", data.columns.tolist())
+            print("【调试】原始列名:", data.columns.tolist())
             data = data.loc[:, ~data.columns.duplicated()]
-            print("【调试】去除重复列后的列名:", data.columns.tolist())
+            print("【调试】去重后列名:", data.columns.tolist())
             data = data.fillna('')
             if not data.empty:
                 print("【调试】第一行数据:", data.iloc[0].to_dict())
@@ -145,13 +153,16 @@ def import_excel_to_db():
             flash('Data imported successfully!')
         except Exception as e:
             flash(f'Failed to import data: {str(e)}')
-            print("【错误】导入时出现异常:", e)
+            print("【错误】导入异常:", e)
 
-# ========== 路由 ==========
+# ========= 路由 =========
+
+# 根路由，重定向到登录页面
 @app.route('/')
 def home():
     return redirect(url_for('login'))
 
+# 登录路由
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -164,30 +175,30 @@ def login():
         flash('Invalid credentials')
     return render_template('login.html')
 
+# 登出路由
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# Dashboard 路由，支持搜索和空值过滤
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    # 若为 POST 请求，则获取搜索条件
+    # 搜索部分
     if request.method == 'POST':
-        # 检查是否勾选了“仅显示空值订单”
         only_missing = request.form.get('only_missing')
         if only_missing:
-            # 构造过滤条件：任一必填字段为空
+            # 过滤条件：任一必填字段为空或为 "0"
             fields = ["input_number", "supplier_shipper", "po_number",
                       "material_code", "bom_material_name", "material_size",
                       "quantity", "unit", "mbl_number", "container_count",
                       "container_number", "hbl_number", "pol", "etd",
                       "pod", "pod_eta", "estimated_delivery_date"]
-            missing_filters = [getattr(Order, field) == '' for field in fields]
+            missing_filters = [(getattr(Order, field) == '') | (getattr(Order, field) == '0') for field in fields]
             orders = Order.query.filter(or_(*missing_filters)).order_by(Order.created_at.desc()).all()
         else:
-            # 普通搜索（可按各字段模糊搜索）
             filters = []
             search_fields = ["input_number", "supplier_shipper", "po_number",
                              "material_code", "bom_material_name", "material_size",
@@ -204,8 +215,8 @@ def dashboard():
                 orders = Order.query.order_by(Order.created_at.desc()).all()
     else:
         orders = Order.query.order_by(Order.created_at.desc()).all()
-    
-    # 计算当前查询结果中各必填字段是否存在空值，用于表头部门显示
+
+    # 计算当前查询中各字段是否存在空值（空字符串或 "0" 视为缺失），用于表头显示
     columns_to_check = ["input_number", "supplier_shipper", "po_number",
                         "material_code", "bom_material_name", "material_size",
                         "quantity", "unit", "mbl_number", "container_count",
@@ -213,17 +224,48 @@ def dashboard():
                         "pod", "pod_eta", "estimated_delivery_date"]
     missing_map = {}
     for col in columns_to_check:
-        missing_map[col] = any(not getattr(order, col) for order in orders)
-    
-    # 统计整个数据库中，每个必填字段的空值数量
+        missing_map[col] = any((not getattr(order, col)) or (getattr(order, col) == '0') for order in orders)
+
+    # 统计整个数据库中每个字段的缺失数量（空字符串或 "0" 视为缺失）
     all_orders = Order.query.all()
     total_missing = {}
     for col in columns_to_check:
-        count = sum(1 for order in all_orders if not getattr(order, col))
-        total_missing[col] = count
+        total_missing[col] = sum(1 for order in all_orders if (not getattr(order, col)) or (getattr(order, col) == '0'))
 
     return render_template('dashboard.html', orders=orders, missing_map=missing_map, total_missing=total_missing)
 
+# 新增订单路由
+@app.route('/add_order', methods=['GET', 'POST'])
+@login_required
+def add_order():
+    if request.method == 'POST':
+        new_order = Order(
+            input_number=request.form.get('input_number', ''),
+            supplier_shipper=request.form.get('supplier_shipper', ''),
+            po_number=request.form.get('po_number', ''),
+            material_code=request.form.get('material_code', ''),
+            bom_material_name=request.form.get('bom_material_name', ''),
+            material_size=request.form.get('material_size', ''),
+            quantity=request.form.get('quantity', ''),
+            unit=request.form.get('unit', ''),
+            mbl_number=request.form.get('mbl_number', ''),
+            container_count=request.form.get('container_count', ''),
+            container_number=request.form.get('container_number', ''),
+            hbl_number=request.form.get('hbl_number', ''),
+            pol=request.form.get('pol', ''),
+            etd=request.form.get('etd', ''),
+            pod=request.form.get('pod', ''),
+            pod_eta=request.form.get('pod_eta', ''),
+            estimated_delivery_date=request.form.get('estimated_delivery_date', ''),
+            remark=request.form.get('remark', '')
+        )
+        db.session.add(new_order)
+        db.session.commit()
+        flash('New order added successfully!')
+        return redirect(url_for('dashboard'))
+    return render_template('add_order.html')
+
+# 编辑订单路由
 @app.route('/edit_order/<int:order_id>', methods=['GET', 'POST'])
 @login_required
 def edit_order(order_id):
@@ -252,6 +294,7 @@ def edit_order(order_id):
         return redirect(url_for('dashboard'))
     return render_template('edit_order.html', order=order)
 
+# 导出 Excel 路由
 @app.route('/export', methods=['GET'])
 @login_required
 def export_orders():
@@ -281,6 +324,7 @@ def export_orders():
     df.to_excel(output_file, index=False)
     return send_file(output_file, as_attachment=True)
 
+# 上传 Excel 路由
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():

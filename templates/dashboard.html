@@ -1,297 +1,332 @@
 <!DOCTYPE html>
 <html lang="{{ session.get('lang', 'zh') }}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ _('Runergy Order Dashboard') }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ _('Runergy Order Dashboard') }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* 表格容器仅允许纵向滚动 */
+    .table-wrapper {
+      overflow-y: auto;
+      height: 600px; /* 默认显示约20行，根据需要调整 */
+    }
+    /* 表格采用固定布局和较小字体 */
+    table {
+      width: 100%;
+      table-layout: fixed;
+      word-wrap: break-word;
+      font-size: 0.75rem;
+    }
+  </style>
 </head>
 <body class="bg-light">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar navbar-dark bg-primary">
-        <div class="container-fluid">
-            <span class="navbar-brand">{{ _('Runergy Order Dashboard') }}</span>
-            <div class="d-flex">
-                <div class="dropdown me-2">
-                    <button class="btn btn-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown">
-                        {{ _('Language') }}
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/switch_language/en">{{ _('English') }}</a></li>
-                        <li><a class="dropdown-item" href="/switch_language/zh">{{ _('Chinese') }}</a></li>
-                    </ul>
-                </div>
-                <a href="/logout" class="btn btn-danger">{{ _('Logout') }}</a>
-            </div>
+  <!-- 顶部导航栏 -->
+  <nav class="navbar navbar-dark bg-primary">
+    <div class="container-fluid">
+      <span class="navbar-brand">{{ _('Runergy Order Dashboard') }}</span>
+      <div class="d-flex">
+        <div class="dropdown me-2">
+          <button class="btn btn-light dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown">
+            {{ _('Language') }}
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="/switch_language/en">{{ _('English') }}</a></li>
+            <li><a class="dropdown-item" href="/switch_language/zh">{{ _('Chinese') }}</a></li>
+          </ul>
         </div>
-    </nav>
-    <div class="container my-5">
-        <h2 class="mb-4">{{ _('Order Summary') }}</h2>
-        <!-- 显示整个数据库中各字段的缺失统计 -->
-        <div class="mb-3">
-            <h5>{{ _('Overall Missing Count') }}:</h5>
-            <ul>
-                {% for field, count in total_missing.items() %}
-                <li>{{ field }}: {{ count }} {{ _('missing') }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        <!-- 搜索表单 -->
-        <form method="POST" action="/dashboard" class="mb-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <input type="text" name="search_input_number" class="form-control" placeholder="{{ _('# Input Number') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_supplier_shipper" class="form-control" placeholder="{{ _('Supplier/Shipper') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_po_number" class="form-control" placeholder="{{ _('PO Number') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_material_code" class="form-control" placeholder="{{ _('Material Code') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_bom_material_name" class="form-control" placeholder="{{ _('BOM Material Name') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_material_size" class="form-control" placeholder="{{ _('Material Size') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_quantity" class="form-control" placeholder="{{ _('Quantity') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_unit" class="form-control" placeholder="{{ _('Unit') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_mbl_number" class="form-control" placeholder="{{ _('MBL Number') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_container_count" class="form-control" placeholder="{{ _('Container Count') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_container_number" class="form-control" placeholder="{{ _('Container Number') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_hbl_number" class="form-control" placeholder="{{ _('HBL Number') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_pol" class="form-control" placeholder="{{ _('POL') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_etd" class="form-control" placeholder="{{ _('ETD') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_pod" class="form-control" placeholder="{{ _('POD') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_pod_eta" class="form-control" placeholder="{{ _('POD ETA') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" name="search_estimated_delivery_date" class="form-control" placeholder="{{ _('Estimated Delivery Date') }}">
-                </div>
-            </div>
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">{{ _('Search') }}</button>
-                <!-- 重置按钮：直接跳转到 /dashboard (GET)，返回完整大表格 -->
-                <a href="/dashboard" class="btn btn-secondary">{{ _('Reset Search') }}</a>
-                <!-- 新增复选框：仅显示空值订单 -->
-                <div class="form-check d-inline-block ms-3">
-                    <input class="form-check-input" type="checkbox" name="only_missing" id="only_missing">
-                    <label class="form-check-label" for="only_missing">{{ _('Only show missing orders') }}</label>
-                </div>
-            </div>
-        </form>
-        <!-- 上传 Excel（仅管理员） -->
-        <div class="row mt-4">
-            <form method="POST" enctype="multipart/form-data" action="/upload">
-                <div class="mb-3">
-                    <label for="file" class="form-label">{{ _('Upload Excel File') }}</label>
-                    <input type="file" name="file" class="form-control" required>
-                </div>
-                <button type="submit" class="btn btn-success">{{ _('Upload') }}</button>
-            </form>
-        </div>
-        <h3 class="mt-5">{{ _('Recent Orders') }}</h3>
-        <table class="table table-bordered table-striped">
-            <thead class="table-primary">
-                <!-- 第一行：部门名称 -->
-                <tr>
-                    <th>
-                        {% if missing_map.input_number %}
-                            <span class="text-danger">{{ _('部门 A') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('部门 A') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.supplier_shipper %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.po_number %}
-                            <span class="text-danger">{{ _('采购部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('采购部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.material_code %}
-                            <span class="text-danger">{{ _('技术部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('技术部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.bom_material_name %}
-                            <span class="text-danger">{{ _('技术部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('技术部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.material_size %}
-                            <span class="text-danger">{{ _('技术部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('技术部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.quantity %}
-                            <span class="text-danger">{{ _('仓储部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('仓储部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.unit %}
-                            <span class="text-danger">{{ _('仓储部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('仓储部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.mbl_number %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.container_count %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.container_number %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.hbl_number %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.pol %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.etd %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.pod %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.pod_eta %}
-                            <span class="text-danger">{{ _('物流部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('物流部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th>
-                        {% if missing_map.estimated_delivery_date %}
-                            <span class="text-danger">{{ _('仓储部门') }}</span>
-                        {% else %}
-                            <span class="text-dark">{{ _('仓储部门') }}</span>
-                        {% endif %}
-                    </th>
-                    <th></th>
-                </tr>
-                <!-- 第二行：实际列名 -->
-                <tr>
-                    <th>{{ _('# Input Number') }}</th>
-                    <th>{{ _('Supplier/Shipper') }}</th>
-                    <th>{{ _('PO Number') }}</th>
-                    <th>{{ _('Material Code') }}</th>
-                    <th>{{ _('BOM Material Name') }}</th>
-                    <th>{{ _('Material Size') }}</th>
-                    <th>{{ _('Quantity') }}</th>
-                    <th>{{ _('Unit') }}</th>
-                    <th>{{ _('MBL Number') }}</th>
-                    <th>{{ _('Container Count') }}</th>
-                    <th>{{ _('Container Number') }}</th>
-                    <th>{{ _('HBL Number') }}</th>
-                    <th>{{ _('POL') }}</th>
-                    <th>{{ _('ETD') }}</th>
-                    <th>{{ _('POD') }}</th>
-                    <th>{{ _('POD ETA') }}</th>
-                    <th>{{ _('Estimated Delivery Date') }}</th>
-                    <th>{{ _('Actions') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.input_number or 'N/A' }}</td>
-                    <td>{{ order.supplier_shipper or 'N/A' }}</td>
-                    <td>{{ order.po_number or 'N/A' }}</td>
-                    <td>{{ order.material_code or 'N/A' }}</td>
-                    <td>{{ order.bom_material_name or 'N/A' }}</td>
-                    <td>{{ order.material_size or 'N/A' }}</td>
-                    <td>{{ order.quantity or 'N/A' }}</td>
-                    <td>{{ order.unit or 'N/A' }}</td>
-                    <td>{{ order.mbl_number or 'N/A' }}</td>
-                    <td>{{ order.container_count or 'N/A' }}</td>
-                    <td>{{ order.container_number or 'N/A' }}</td>
-                    <td>{{ order.hbl_number or 'N/A' }}</td>
-                    <td>{{ order.pol or 'N/A' }}</td>
-                    <td>{{ order.etd or 'N/A' }}</td>
-                    <td>{{ order.pod or 'N/A' }}</td>
-                    <td>{{ order.pod_eta or 'N/A' }}</td>
-                    <td>{{ order.estimated_delivery_date or 'N/A' }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_order', order_id=order.id) }}" class="btn btn-warning btn-sm">
-                            {{ _('Edit') }}
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <a href="/export" class="btn btn-success mt-3">{{ _('Export to Excel') }}</a>
+        <a href="/logout" class="btn btn-danger">{{ _('Logout') }}</a>
+      </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </nav>
+  
+  <div class="container my-5">
+    <h2 class="mb-4">{{ _('Order Summary') }}</h2>
+    
+    <!-- 整体缺失统计（美化为卡片形式） -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">{{ _('Overall Missing Count') }}</h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for field, count in total_missing.items() %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>{{ field }}</span>
+            <span class="badge bg-danger rounded-pill">{{ count }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+    
+    <!-- 搜索表单 -->
+    <form method="POST" action="{{ url_for('dashboard') }}" class="mb-4">
+      <div class="row g-3">
+        <!-- 此处示例部分搜索输入框 -->
+        <div class="col-md-3">
+          <input type="text" name="search_input_number" class="form-control" placeholder="{{ _('# Input Number') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_supplier_shipper" class="form-control" placeholder="{{ _('Supplier/Shipper') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_po_number" class="form-control" placeholder="{{ _('PO Number') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_material_code" class="form-control" placeholder="{{ _('Material Code') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_bom_material_name" class="form-control" placeholder="{{ _('BOM Material Name') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_material_size" class="form-control" placeholder="{{ _('Material Size') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_quantity" class="form-control" placeholder="{{ _('Quantity') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_unit" class="form-control" placeholder="{{ _('Unit') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_mbl_number" class="form-control" placeholder="{{ _('MBL Number') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_container_count" class="form-control" placeholder="{{ _('Container Count') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_container_number" class="form-control" placeholder="{{ _('Container Number') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_hbl_number" class="form-control" placeholder="{{ _('HBL Number') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_pol" class="form-control" placeholder="{{ _('POL') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_etd" class="form-control" placeholder="{{ _('ETD') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_pod" class="form-control" placeholder="{{ _('POD') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_pod_eta" class="form-control" placeholder="{{ _('POD ETA') }}">
+        </div>
+        <div class="col-md-3">
+          <input type="text" name="search_estimated_delivery_date" class="form-control" placeholder="{{ _('Estimated Delivery Date') }}">
+        </div>
+      </div>
+      <div class="mt-3">
+        <button type="submit" class="btn btn-primary">{{ _('Search') }}</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ _('Reset Search') }}</a>
+        <div class="form-check d-inline-block ms-3">
+          <input class="form-check-input" type="checkbox" name="only_missing" id="only_missing">
+          <label class="form-check-label" for="only_missing">{{ _('Only show missing orders') }}</label>
+        </div>
+      </div>
+    </form>
+    
+    <!-- 上传 Excel 表单（仅限管理员） -->
+    <div class="row mt-4">
+      <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+        <div class="mb-3">
+          <label for="file" class="form-label">{{ _('Upload Excel File') }}</label>
+          <input type="file" name="file" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-success">{{ _('Upload') }}</button>
+      </form>
+    </div>
+    
+    <!-- 新增订单按钮 -->
+    <div class="mb-3">
+      <a href="{{ url_for('add_order') }}" class="btn btn-success">{{ _('Add New Order') }}</a>
+    </div>
+    
+    <!-- 表格容器：仅允许纵向滚动 -->
+    <div class="table-wrapper">
+      <table class="table table-bordered table-striped table-sm">
+        <thead class="table-primary">
+          <!-- 第一行：部门名称（编辑按钮最左侧，备注直接显示） -->
+          <tr>
+            <th>Actions</th>
+            <th>{{ _('Remark') }}</th>
+            <th>
+              {% if missing_map.input_number %}
+                <span class="text-danger">{{ _('部门 A') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('部门 A') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.supplier_shipper %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.po_number %}
+                <span class="text-danger">{{ _('采购部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('采购部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.material_code %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.bom_material_name %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.material_size %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.quantity %}
+                <span class="text-danger">{{ _('仓储部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('仓储部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.unit %}
+                <span class="text-danger">{{ _('仓储部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('仓储部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.mbl_number %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.container_count %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.container_number %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.hbl_number %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.pol %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.etd %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.pod %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.pod_eta %}
+                <span class="text-danger">{{ _('物流部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('物流部门') }}</span>
+              {% endif %}
+            </th>
+            <th>
+              {% if missing_map.estimated_delivery_date %}
+                <span class="text-danger">{{ _('仓储部门') }}</span>
+              {% else %}
+                <span class="text-dark">{{ _('仓储部门') }}</span>
+              {% endif %}
+            </th>
+          </tr>
+          <!-- 第二行：实际列名，title 显示整个数据库中该字段缺失总数 -->
+          <tr>
+            <th>Actions</th>
+            <th title="">{{ _('Remark') }}</th>
+            <th title="Missing: {{ total_missing['input_number'] }}">{{ _('# Input Number') }}</th>
+            <th title="Missing: {{ total_missing['supplier_shipper'] }}">{{ _('Supplier/Shipper') }}</th>
+            <th title="Missing: {{ total_missing['po_number'] }}">{{ _('PO Number') }}</th>
+            <th title="Missing: {{ total_missing['material_code'] }}">{{ _('Material Code') }}</th>
+            <th title="Missing: {{ total_missing['bom_material_name'] }}">{{ _('BOM Material Name') }}</th>
+            <th title="Missing: {{ total_missing['material_size'] }}">{{ _('Material Size') }}</th>
+            <th title="Missing: {{ total_missing['quantity'] }}">{{ _('Quantity') }}</th>
+            <th title="Missing: {{ total_missing['unit'] }}">{{ _('Unit') }}</th>
+            <th title="Missing: {{ total_missing['mbl_number'] }}">{{ _('MBL Number') }}</th>
+            <th title="Missing: {{ total_missing['container_count'] }}">{{ _('Container Count') }}</th>
+            <th title="Missing: {{ total_missing['container_number'] }}">{{ _('Container Number') }}</th>
+            <th title="Missing: {{ total_missing['hbl_number'] }}">{{ _('HBL Number') }}</th>
+            <th title="Missing: {{ total_missing['pol'] }}">{{ _('POL') }}</th>
+            <th title="Missing: {{ total_missing['etd'] }}">{{ _('ETD') }}</th>
+            <th title="Missing: {{ total_missing['pod'] }}">{{ _('POD') }}</th>
+            <th title="Missing: {{ total_missing['pod_eta'] }}">{{ _('POD ETA') }}</th>
+            <th title="Missing: {{ total_missing['estimated_delivery_date'] }}">{{ _('Estimated Delivery Date') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <!-- 编辑按钮放在最左边 -->
+            <td>
+              <a href="{{ url_for('edit_order', order_id=order.id) }}" class="btn btn-warning btn-sm">
+                {{ _('Edit') }}
+              </a>
+            </td>
+            <!-- Remark 列直接显示 -->
+            <td>{{ order.remark or 'N/A' }}</td>
+            <td>{{ order.input_number or 'N/A' }}</td>
+            <td>{{ order.supplier_shipper or 'N/A' }}</td>
+            <td>{{ order.po_number or 'N/A' }}</td>
+            <td>{{ order.material_code or 'N/A' }}</td>
+            <td>{{ order.bom_material_name or 'N/A' }}</td>
+            <td>{{ order.material_size or 'N/A' }}</td>
+            <td>{{ order.quantity or 'N/A' }}</td>
+            <td>{{ order.unit or 'N/A' }}</td>
+            <td>{{ order.mbl_number or 'N/A' }}</td>
+            <td>{{ order.container_count or 'N/A' }}</td>
+            <td>{{ order.container_number or 'N/A' }}</td>
+            <td>{{ order.hbl_number or 'N/A' }}</td>
+            <td>{{ order.pol or 'N/A' }}</td>
+            <td>{{ order.etd or 'N/A' }}</td>
+            <td>{{ order.pod or 'N/A' }}</td>
+            <td>{{ order.pod_eta or 'N/A' }}</td>
+            <td>{{ order.estimated_delivery_date or 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <a href="{{ url_for('export_orders') }}" class="btn btn-success mt-3">{{ _('Export to Excel') }}</a>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
