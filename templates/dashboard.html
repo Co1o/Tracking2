@@ -7,10 +7,10 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* 表格容器仅允许纵向滚动 */
+    /* 表格容器只允许纵向滚动，默认高度约20行 */
     .table-wrapper {
       overflow-y: auto;
-      height: 600px; /* 默认显示约20行，根据需要调整 */
+      height: 600px;
     }
     /* 表格采用固定布局和较小字体 */
     table {
@@ -18,6 +18,11 @@
       table-layout: fixed;
       word-wrap: break-word;
       font-size: 0.75rem;
+    }
+    /* 缩小部门徽章字体 */
+    .badge-dept {
+      font-size: 0.7rem;
+      font-weight: normal;
     }
   </style>
 </head>
@@ -44,25 +49,9 @@
   <div class="container my-5">
     <h2 class="mb-4">{{ _('Order Summary') }}</h2>
     
-    <!-- 整体缺失统计（美化为卡片形式） -->
-    <div class="card mb-4">
-      <div class="card-header">
-        <h5 class="mb-0">{{ _('Overall Missing Count') }}</h5>
-      </div>
-      <ul class="list-group list-group-flush">
-        {% for field, count in total_missing.items() %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>{{ field }}</span>
-            <span class="badge bg-danger rounded-pill">{{ count }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-    
     <!-- 搜索表单 -->
     <form method="POST" action="{{ url_for('dashboard') }}" class="mb-4">
       <div class="row g-3">
-        <!-- 此处示例部分搜索输入框 -->
         <div class="col-md-3">
           <input type="text" name="search_input_number" class="form-control" placeholder="{{ _('# Input Number') }}">
         </div>
@@ -118,10 +107,10 @@
       <div class="mt-3">
         <button type="submit" class="btn btn-primary">{{ _('Search') }}</button>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">{{ _('Reset Search') }}</a>
-        <div class="form-check d-inline-block ms-3">
-          <input class="form-check-input" type="checkbox" name="only_missing" id="only_missing">
-          <label class="form-check-label" for="only_missing">{{ _('Only show missing orders') }}</label>
-        </div>
+        <!-- 用红色按钮提交 only_missing 参数 -->
+        <button type="submit" name="only_missing" value="on" class="btn btn-danger ms-3">
+          {{ _('Only show missing orders') }}
+        </button>
       </div>
     </form>
     
@@ -141,137 +130,223 @@
       <a href="{{ url_for('add_order') }}" class="btn btn-success">{{ _('Add New Order') }}</a>
     </div>
     
-    <!-- 表格容器：仅允许纵向滚动 -->
+    <!-- 表格容器：只允许纵向滚动 -->
     <div class="table-wrapper">
       <table class="table table-bordered table-striped table-sm">
         <thead class="table-primary">
-          <!-- 第一行：部门名称（编辑按钮最左侧，备注直接显示） -->
+          <!-- 第一行：部门名称 + 缺失徽章 -->
           <tr>
-            <th>Actions</th>
+            <th>{{ _('Actions') }}</th>
             <th>{{ _('Remark') }}</th>
+            <!-- input_number => 部门 A -->
             <th>
+              {% set missing_count = total_missing['input_number'] %}
               {% if missing_map.input_number %}
-                <span class="text-danger">{{ _('部门 A') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('部门 A') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('部门 A') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('部门 A') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- supplier_shipper => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['supplier_shipper'] %}
               {% if missing_map.supplier_shipper %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- po_number => 采购部门 -->
             <th>
+              {% set missing_count = total_missing['po_number'] %}
               {% if missing_map.po_number %}
-                <span class="text-danger">{{ _('采购部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('采购部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('采购部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('采购部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- material_code => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['material_code'] %}
               {% if missing_map.material_code %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- bom_material_name => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['bom_material_name'] %}
               {% if missing_map.bom_material_name %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- material_size => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['material_size'] %}
               {% if missing_map.material_size %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- quantity => 仓储部门 -->
             <th>
+              {% set missing_count = total_missing['quantity'] %}
               {% if missing_map.quantity %}
-                <span class="text-danger">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('仓储部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('仓储部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- unit => 仓储部门 -->
             <th>
+              {% set missing_count = total_missing['unit'] %}
               {% if missing_map.unit %}
-                <span class="text-danger">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('仓储部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('仓储部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- mbl_number => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['mbl_number'] %}
               {% if missing_map.mbl_number %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- container_count => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['container_count'] %}
               {% if missing_map.container_count %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- container_number => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['container_number'] %}
               {% if missing_map.container_number %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- hbl_number => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['hbl_number'] %}
               {% if missing_map.hbl_number %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- pol => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['pol'] %}
               {% if missing_map.pol %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- etd => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['etd'] %}
               {% if missing_map.etd %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- pod => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['pod'] %}
               {% if missing_map.pod %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- pod_eta => 物流部门 -->
             <th>
+              {% set missing_count = total_missing['pod_eta'] %}
               {% if missing_map.pod_eta %}
-                <span class="text-danger">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('物流部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('物流部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('物流部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
+            <!-- estimated_delivery_date => 仓储部门 -->
             <th>
+              {% set missing_count = total_missing['estimated_delivery_date'] %}
               {% if missing_map.estimated_delivery_date %}
-                <span class="text-danger">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-danger text-white">{{ _('仓储部门') }}</span>
               {% else %}
-                <span class="text-dark">{{ _('仓储部门') }}</span>
+                <span class="badge badge-dept bg-secondary text-white">{{ _('仓储部门') }}</span>
+              {% endif %}
+              {% if missing_count > 0 %}
+                <span class="badge bg-danger ms-1">{{ missing_count }}</span>
               {% endif %}
             </th>
           </tr>
-          <!-- 第二行：实际列名，title 显示整个数据库中该字段缺失总数 -->
+          
+          <!-- 第二行：实际列名（title 显示缺失总数） -->
           <tr>
-            <th>Actions</th>
+            <th>{{ _('Actions') }}</th>
             <th title="">{{ _('Remark') }}</th>
             <th title="Missing: {{ total_missing['input_number'] }}">{{ _('# Input Number') }}</th>
             <th title="Missing: {{ total_missing['supplier_shipper'] }}">{{ _('Supplier/Shipper') }}</th>
@@ -292,17 +367,16 @@
             <th title="Missing: {{ total_missing['estimated_delivery_date'] }}">{{ _('Estimated Delivery Date') }}</th>
           </tr>
         </thead>
+        
         <tbody>
           {% for order in orders %}
           <tr>
-            <!-- 编辑按钮放在最左边 -->
             <td>
               <a href="{{ url_for('edit_order', order_id=order.id) }}" class="btn btn-warning btn-sm">
                 {{ _('Edit') }}
               </a>
             </td>
-            <!-- Remark 列直接显示 -->
-            <td>{{ order.remark or 'N/A' }}</td>
+            <td>{{ order.remark or '' }}</td>
             <td>{{ order.input_number or 'N/A' }}</td>
             <td>{{ order.supplier_shipper or 'N/A' }}</td>
             <td>{{ order.po_number or 'N/A' }}</td>
@@ -325,8 +399,10 @@
         </tbody>
       </table>
     </div>
+    
     <a href="{{ url_for('export_orders') }}" class="btn btn-success mt-3">{{ _('Export to Excel') }}</a>
   </div>
+  
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
